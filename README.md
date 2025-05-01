@@ -25,18 +25,31 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 - [rich](https://rich.readthedocs.io/) – Terminal styling and pretty tables
 
 
+## 🛠️ Usage
+
+You can run AWATP interactively or with command-line flags for automation.
+
+### 🔁 Interactive Mode
+
+```bash
+python main.py
 
 ### ⚙️ Command-Line Options
 
-AWATP supports command-line flags for automated, headless scanning:
+AWATP supports command-line flags for headless, automated scanning:
 
 ```bash
-python main.py --url https://target.com
+python main.py --url https://target.com --modules sqli,xss
+
+| Flag         | Description                                                              |
+|--------------|--------------------------------------------------------------------------|
+| `--url`      | Provide a target URL directly                                            |
+| `--json`     | Output only JSON report (no console output)                              |
+| `--silent`   | Suppress all output except fatal errors                                  |
+| `--modules`  | Comma-separated list of scans to run (e.g., `sqli,xss,ssti`)             |
 
 ---
-
 ## 📂 Project Structure
-
 
 awatp/ 
 ├── core/ 
@@ -53,8 +66,6 @@ awatp/
 ├── requirements.txt 
 ├── README.md 
 └── venv/
-
-
 ---
 
 ## 🛠️ Getting Started

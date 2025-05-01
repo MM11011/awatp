@@ -14,6 +14,7 @@ def parse_args():
     parser.add_argument("--url", type=str, help="Target URL to scan")
     parser.add_argument("--json", action="store_true", help="Output JSON report only, suppress terminal output")
     parser.add_argument("--silent", action="store_true", help="Suppress all output except errors")
+    parser.add_argument("--modules", type=str, help="Comma-separated list of modules to run (sqli,xss,ssti)")
     return parser.parse_args()
 
 def main():
@@ -55,7 +56,11 @@ def main():
         console.print(table)
         console.print("\n🚀 [bold green]Launching scans...[/bold green]")
 
-    results = asyncio.run(run_scanner(target, fingerprint))
+    selected_modules = None
+    if args.modules:
+        selected_modules = [m.strip().lower() for m in args.modules.split(",")]
+
+    results = asyncio.run(run_scanner(target, fingerprint, selected_modules))
 
     if not args.json and not args.silent:
         results_table = Table(title="🧪 Scan Results", show_lines=True)
