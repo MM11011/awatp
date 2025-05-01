@@ -12,10 +12,10 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 ## 🚀 Features
 
 - ✅ Server fingerprinting based on HTTP response headers  
-- ✅ Modular payload engine for future scanning (SQLi, XSS, SSTI)  
-- ✅ CLI-based interaction with optional future web UI  
-- ✅ Clear, structured output — JSON reports and terminal summaries  
-- ✅ Designed with **security analysts** and **SEs** in mind  
+- ✅ Adaptive scanning engine that selects payloads based on detected stack  
+- ✅ Basic SQL Injection detection module (PHP-specific)  
+- ✅ CLI-based interaction with structured output  
+- ✅ Designed with security analysts and SEs in mind 
 
 ---
 
@@ -57,15 +57,12 @@ python main.py
 Enter a target URL when prompted (e.g., https://httpbin.org).
 
 📌 Roadmap
- Implement adaptive payload modules (SQLi, XSS, SSTI)
-
- Add concurrent scanning for multiple URLs
-
- Write scan results to structured JSON
-
- Web UI (Flask or Streamlit)
-
- Docker support for easy deployment
+- [x] Implement adaptive payload modules (SQLi for PHP)
+- [ ] Add XSS and SSTI scanning support
+- [ ] Add concurrent scanning for multiple URLs
+- [ ] Write scan results to structured JSON
+- [ ] Web UI (Flask or Streamlit)
+- [ ] Docker support for easy deployment
 
 🧠 Inspiration
 This project is inspired by traditional scanners like Nikto and Wapiti, but with a modern, adaptive approach using Python and real-time server analysis. Great for security engineers, SOC analysts, and AppSec learners.
