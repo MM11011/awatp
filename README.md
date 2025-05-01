@@ -37,7 +37,7 @@ python main.py --url https://target.com
 
 ## 📂 Project Structure
 
-<pre><code>## 📂 Project Structure ``` 
+
 awatp/ 
 ├── core/ 
 │ ├── scanner.py 
@@ -53,7 +53,7 @@ awatp/
 ├── requirements.txt 
 ├── README.md 
 └── venv/
- ``` </code></pre>
+
 
 ---
 
