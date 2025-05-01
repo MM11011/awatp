@@ -31,19 +31,19 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 
 awatp/
 ├── core/
-│   ├── scanner.py            # (To be developed: adaptive scanning engine)
-│   ├── fingerprints.py       # ✔️ Basic server fingerprinting logic
+│   ├── scanner.py            
+│   ├── fingerprints.py       
 │   └── payloads/
-│       ├── sql.py            # (Placeholder for SQLi scanning logic)
-│       ├── xss.py            # (Placeholder for XSS scanning logic)
-│       └── ssti.py           # (Placeholder for SSTI scanning logic)
-├── reports/                  # (Empty for now — will store scan outputs)
+│       ├── sql.py            
+│       ├── xss.py            
+│       └── ssti.py           
+├── reports/                  
 ├── utils/
-│   └── parser.py             # (Placeholder for response parsing helpers)
-├── main.py                   # ✔️ CLI entry point for user input and scan execution
-├── requirements.txt          # ✔️ Installed `httpx` and `rich`
-├── README.md                 # ✔️ Complete with description, setup, and roadmap
-└── venv/                     # ✔️ Virtual environment (excluded via .gitignore)
+│   └── parser.py             
+├── main.py                   
+├── requirements.txt          
+├── README.md                 
+└── venv/                     
 
 ---
 
