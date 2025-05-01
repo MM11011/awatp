@@ -17,6 +17,7 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 - ✅ CLI-based interaction with structured output  
 - ✅ Designed with security analysts and SEs in mind
 - ✅ Reflected XSS detection module
+- ✅ Server-Side Template Injection (SSTI) detection module
 
 ---
 
@@ -59,7 +60,7 @@ Enter a target URL when prompted (e.g., https://httpbin.org).
 
 📌 Roadmap
 - [x] Implement adaptive payload modules (SQLi for PHP)
-- [x] Add XSS and SSTI scanning support (XSS complete)
+- [x] Add XSS and SSTI scanning support (both complete)
 - [ ] Add concurrent scanning for multiple URLs
 - [ ] Write scan results to structured JSON
 - [ ] Web UI (Flask or Streamlit)

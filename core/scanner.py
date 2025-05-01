@@ -1,5 +1,5 @@
 import httpx
-from core.payloads import sql, xss
+from core.payloads import sql, xss, ssti
 
 def run_scanner(url, fingerprint_info):
     print("🛠️  Running vulnerability scanner...")
@@ -16,5 +16,9 @@ def run_scanner(url, fingerprint_info):
     xss_result = xss.scan_for_xss(url)
     results.append(xss_result)
 
-    return results
+    # SSTI
+    print("🔎 Running SSTI scan...")
+    ssti_result = ssti.scan_for_ssti(url)
+    results.append(ssti_result)
 
+    return results
