@@ -31,19 +31,19 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 
 awatp/
 ├── core/
-│   ├── scanner.py            
-│   ├── fingerprints.py       
+│   ├── scanner.py
+│   ├── fingerprints.py
 │   └── payloads/
-│       ├── sql.py            
-│       ├── xss.py            
-│       └── ssti.py           
-├── reports/                  
+│       ├── sql.py
+│       ├── xss.py
+│       └── ssti.py
+├── reports/
 ├── utils/
-│   └── parser.py             
-├── main.py                   
-├── requirements.txt          
-├── README.md                 
-└── venv/                     
+│   └── parser.py
+├── main.py
+├── requirements.txt
+├── README.md
+└── venv/
 
 ---
 
