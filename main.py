@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 from core.fingerprints import fingerprint_target
 from core.scanner import run_scanner
 from utils.report_writer import save_scan_report
@@ -8,32 +9,55 @@ from rich.panel import Panel
 
 console = Console()
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Adaptive Web Application Threat Profiler (AWATP)")
+    parser.add_argument("--url", type=str, help="Target URL to scan")
+    parser.add_argument("--json", action="store_true", help="Output JSON report only, suppress terminal output")
+    parser.add_argument("--silent", action="store_true", help="Suppress all output except errors")
+    return parser.parse_args()
+
 def main():
-    console.print(Panel.fit("[bold cyan]🔍 Adaptive Web Application Threat Profiler (AWATP)[/bold cyan]"))
-    target = input("Enter target URL (e.g. https://example.com): ").strip()
+    args = parse_args()
+    target = args.url
 
     if not target:
-        console.print("[red]❌ No URL provided. Exiting.[/red]")
+        if args.silent:
+            return
+        console.print(Panel.fit("[bold cyan]🔍 Adaptive Web Application Threat Profiler (AWATP)[/bold cyan]"))
+        target = input("Enter target URL (e.g. https://example.com): ").strip()
+
+    if not target:
+        if not args.silent:
+            console.print("[red]❌ No URL provided. Exiting.[/red]")
         return
 
     if not target.startswith("http"):
-        console.print("[red]❌ Please include the scheme (http or https) in the URL.[/red]")
+        if not args.silent:
+            console.print("[red]❌ Please include the scheme (http or https) in the URL.[/red]")
         return
 
-    console.print(f"🎯 Scanning: [yellow]{target}[/yellow]")
-    info = fingerprint_target(target)
+    if not args.silent:
+        console.print(f"🎯 Scanning: [yellow]{target}[/yellow]")
 
-    if info:
+    fingerprint = fingerprint_target(target)
+
+    if not fingerprint:
+        if not args.silent:
+            console.print("[red]⚠️ Could not retrieve fingerprint data.[/red]")
+        return
+
+    if not args.json and not args.silent:
         table = Table(title="📄 Fingerprint Summary", show_header=True, header_style="bold magenta")
         table.add_column("Field")
         table.add_column("Value")
-        for key, value in info.items():
+        for key, value in fingerprint.items():
             table.add_row(key, str(value))
         console.print(table)
-
         console.print("\n🚀 [bold green]Launching scans...[/bold green]")
-        results = asyncio.run(run_scanner(target, info))
 
+    results = asyncio.run(run_scanner(target, fingerprint))
+
+    if not args.json and not args.silent:
         results_table = Table(title="🧪 Scan Results", show_lines=True)
         results_table.add_column("Type", style="bold yellow")
         results_table.add_column("Payload")
@@ -46,10 +70,7 @@ def main():
 
         console.print(results_table)
 
-        # Save to JSON report
-        save_scan_report(target, info, results)
-    else:
-        console.print("[red]⚠️ Could not retrieve fingerprint data.[/red]")
+    save_scan_report(target, fingerprint, results)
 
 if __name__ == "__main__":
     main()

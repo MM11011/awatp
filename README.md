@@ -25,6 +25,14 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 - [rich](https://rich.readthedocs.io/) – Terminal styling and pretty tables
 
 
+
+### ⚙️ Command-Line Options
+
+AWATP supports command-line flags for automated, headless scanning:
+
+```bash
+python main.py --url https://target.com
+
 ---
 
 ## 📂 Project Structure
@@ -59,7 +67,9 @@ cd awatp
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-2. Run the Profiler
+
+### 2. Run the Profiler
+
 bash
 Copy
 Edit
