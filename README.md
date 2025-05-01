@@ -15,7 +15,8 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 - ✅ Adaptive scanning engine that selects payloads based on detected stack  
 - ✅ Basic SQL Injection detection module (PHP-specific)  
 - ✅ CLI-based interaction with structured output  
-- ✅ Designed with security analysts and SEs in mind 
+- ✅ Designed with security analysts and SEs in mind
+- ✅ Reflected XSS detection module
 
 ---
 
@@ -58,7 +59,7 @@ Enter a target URL when prompted (e.g., https://httpbin.org).
 
 📌 Roadmap
 - [x] Implement adaptive payload modules (SQLi for PHP)
-- [ ] Add XSS and SSTI scanning support
+- [x] Add XSS and SSTI scanning support (XSS complete)
 - [ ] Add concurrent scanning for multiple URLs
 - [ ] Write scan results to structured JSON
 - [ ] Web UI (Flask or Streamlit)

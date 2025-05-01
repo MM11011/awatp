@@ -1,5 +1,6 @@
 from core.fingerprints import fingerprint_target
 from core.scanner import run_scanner
+from utils.report_writer import save_scan_report
 
 def main():
     print("🔍 Adaptive Web Application Threat Profiler")
@@ -25,6 +26,9 @@ def main():
             print(f"  - {result['type']}: {'✅ Vulnerable' if result['vulnerable'] else '🛡️ Not Vulnerable'}")
             print(f"    Payload: {result['payload']}")
             print(f"    Evidence: {result['evidence']}")
+
+        # Save to JSON report
+        save_scan_report(target, info, results)
     else:
         print("⚠️ Could not retrieve fingerprint data.")
 
