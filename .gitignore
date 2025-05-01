@@ -1,4 +1,49 @@
-venv/
-__pycache__/
-# Ignore generated scan results
+# 🔒 Security & Output
 reports/
+*.log
+*.out
+*.json
+*.csv
+.env
+*.pem
+*.key
+*.crt
+
+# 🔧 Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.egg-info/
+.venv/
+venv/
+
+# 🧪 IDE/Editor-Specific
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*.bak
+
+# 🛠️ Jupyter/IPython
+.ipynb_checkpoints/
+
+# 📦 Packaging/Dist
+dist/
+build/
+*.egg
+
+# 🧪 Test artifacts
+.coverage
+pytest_cache/
+.noseids
+.tox/
+
+# 🐳 Docker/Container (future-proofing)
+*.pid
+*.sock
+docker-compose.override.yml
+
