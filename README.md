@@ -29,7 +29,8 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 
 ## 📂 Project Structure
 
-<pre><code>## 📂 Project Structure ``` awatp/ ├── core/ │ ├── scanner.py │ ├── fingerprints.py │ └── payloads/ │ ├── sql.py │ ├── xss.py │ └── ssti.py ├── reports/ ├── utils/ │ └── parser.py ├── main.py ├── requirements.txt ├── README.md └── venv/ ``` </code></pre>
+<pre><code>``` awatp/ ├── core/ │ ├── scanner.py │ ├── fingerprints.py │ └── payloads/ │ ├── sql.py │ ├── xss.py │ └── ssti.py ├── reports/ ├── utils/ │ └── parser.py ├── main.py ├── requirements.txt ├── README.md └── venv/ ``` </code></pre>
+
 ---
 
 ## 🛠️ Getting Started
