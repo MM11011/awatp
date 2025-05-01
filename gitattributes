@@ -1,0 +1,16 @@
+# Normalize line endings and enforce UTF-8 encoding
+* text=auto
+
+# Explicitly set line endings to LF for cross-platform consistency
+*.py text eol=lf
+*.dart text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Don't diff these auto-generated or lock files
+*.lock -diff
+*.iml -diff
+*.pyc -diff
+.DS_Store -diff

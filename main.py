@@ -1,81 +1,60 @@
-import asyncio
 import argparse
+import asyncio
+import os
 from core.fingerprints import fingerprint_target
 from core.scanner import run_scanner
 from utils.report_writer import save_scan_report
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-
-console = Console()
+from rich import print
+from rich.prompt import Prompt
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Adaptive Web Application Threat Profiler (AWATP)")
-    parser.add_argument("--url", type=str, help="Target URL to scan")
-    parser.add_argument("--json", action="store_true", help="Output JSON report only, suppress terminal output")
-    parser.add_argument("--silent", action="store_true", help="Suppress all output except errors")
-    parser.add_argument("--modules", type=str, help="Comma-separated list of modules to run (sqli,xss,ssti)")
+    parser = argparse.ArgumentParser(description="AWATP: Adaptive Web App Threat Profiler")
+    parser.add_argument("--url", help="Target URL (e.g., https://example.com)")
+    parser.add_argument("--input", help="File with list of URLs to scan")
+    parser.add_argument("--json", action="store_true", help="Output JSON only (suppress console output)")
+    parser.add_argument("--silent", action="store_true", help="Suppress all console output")
+    parser.add_argument("--modules", help="Comma-separated list of modules (e.g., sqli,xss,ssti)")
     return parser.parse_args()
+
+async def scan_target(url, modules, silent, json_output):
+    if not silent:
+        print(f"\n🎯 [bold]Scanning:[/bold] {url}")
+
+    fingerprint = fingerprint_target(url)
+    selected_modules = modules.split(",") if modules else None
+    results = await run_scanner(url, fingerprint, selected_modules)
+
+    if not silent and not json_output:
+        print("\n📄 [bold]Fingerprint Summary:[/bold]")
+        for k, v in fingerprint.items():
+            print(f"  {k}: {v}")
+
+        print("\n🧪 [bold]Scan Results:[/bold]")
+        for r in results:
+            print(f"  {r['type']}: [bold]{'VULNERABLE' if r['vulnerable'] else 'Safe'}[/bold]")
+
+    save_scan_report(url, fingerprint, results)
 
 def main():
     args = parse_args()
-    target = args.url
+    targets = []
 
-    if not target:
-        if args.silent:
+    if args.input:
+        if not os.path.exists(args.input):
+            print(f"[red]❌ Input file not found: {args.input}[/red]")
             return
-        console.print(Panel.fit("[bold cyan]🔍 Adaptive Web Application Threat Profiler (AWATP)[/bold cyan]"))
-        target = input("Enter target URL (e.g. https://example.com): ").strip()
+        with open(args.input, "r") as f:
+            targets = [line.strip() for line in f if line.strip()]
+    elif args.url:
+        targets = [args.url]
+    else:
+        # Interactive fallback
+        target = Prompt.ask("🔍 Enter target URL (e.g. https://example.com)")
+        targets = [target]
 
-    if not target:
-        if not args.silent:
-            console.print("[red]❌ No URL provided. Exiting.[/red]")
-        return
-
-    if not target.startswith("http"):
-        if not args.silent:
-            console.print("[red]❌ Please include the scheme (http or https) in the URL.[/red]")
-        return
-
-    if not args.silent:
-        console.print(f"🎯 Scanning: [yellow]{target}[/yellow]")
-
-    fingerprint = fingerprint_target(target)
-
-    if not fingerprint:
-        if not args.silent:
-            console.print("[red]⚠️ Could not retrieve fingerprint data.[/red]")
-        return
-
-    if not args.json and not args.silent:
-        table = Table(title="📄 Fingerprint Summary", show_header=True, header_style="bold magenta")
-        table.add_column("Field")
-        table.add_column("Value")
-        for key, value in fingerprint.items():
-            table.add_row(key, str(value))
-        console.print(table)
-        console.print("\n🚀 [bold green]Launching scans...[/bold green]")
-
-    selected_modules = None
-    if args.modules:
-        selected_modules = [m.strip().lower() for m in args.modules.split(",")]
-
-    results = asyncio.run(run_scanner(target, fingerprint, selected_modules))
-
-    if not args.json and not args.silent:
-        results_table = Table(title="🧪 Scan Results", show_lines=True)
-        results_table.add_column("Type", style="bold yellow")
-        results_table.add_column("Payload")
-        results_table.add_column("Vulnerable")
-        results_table.add_column("Evidence")
-
-        for result in results:
-            vuln = "[green]🛡️ No[/green]" if not result["vulnerable"] else "[red]❌ Yes[/red]"
-            results_table.add_row(result["type"], result["payload"], vuln, result["evidence"])
-
-        console.print(results_table)
-
-    save_scan_report(target, fingerprint, results)
+    loop = asyncio.get_event_loop()
+    for url in targets:
+        loop.run_until_complete(scan_target(url, args.modules, args.silent, args.json))
 
 if __name__ == "__main__":
     main()

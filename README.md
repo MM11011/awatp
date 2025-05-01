@@ -22,6 +22,14 @@ Built for **security engineers, red teamers, and AppSec learners**, AWATP offers
 
 You can run AWATP interactively or with command-line flags for automation.
 
+### 📁 Multi-URL Scanning
+
+You can scan many targets from a file:
+
+```bash
+python main.py --input targets.txt --modules sqli,xss
+
+
 ### 🔁 Interactive Mode
 
 ```bash
