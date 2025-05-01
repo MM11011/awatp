@@ -18,6 +18,12 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 - ✅ Designed with security analysts and SEs in mind
 - ✅ Reflected XSS detection module
 - ✅ Server-Side Template Injection (SSTI) detection module
+- ✅ Enhanced terminal output using `rich` for structured, colored display
+
+## Dependencies
+- [httpx](https://www.python-httpx.org/) – HTTP requests with async support
+- [rich](https://rich.readthedocs.io/) – Terminal styling and pretty tables
+
 
 ---
 
