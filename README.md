@@ -21,11 +21,21 @@ It goes beyond static scans by modifying payloads and techniques in real-time de
 
 ## 📂 Project Structure
 
-awatp/ ├── core/ │ ├── scanner.py # Vulnerability scanner engine (to be built) │ ├── fingerprints.py # Header-based fingerprint logic │ └── payloads/ │ ├── sql.py │ ├── xss.py │ └── ssti.py ├── reports/ # (Planned) JSON output directory ├── utils/ │ └── parser.py # (Planned) Response parsing helpers ├── main.py # Entry point CLI ├── requirements.txt └── README.md
-
-yaml
-Copy
-Edit
+awatp/
+├── core/
+│   ├── scanner.py            # (To be developed: adaptive scanning engine)
+│   ├── fingerprints.py       # ✔️ Basic server fingerprinting logic
+│   └── payloads/
+│       ├── sql.py            # (Placeholder for SQLi scanning logic)
+│       ├── xss.py            # (Placeholder for XSS scanning logic)
+│       └── ssti.py           # (Placeholder for SSTI scanning logic)
+├── reports/                  # (Empty for now — will store scan outputs)
+├── utils/
+│   └── parser.py             # (Placeholder for response parsing helpers)
+├── main.py                   # ✔️ CLI entry point for user input and scan execution
+├── requirements.txt          # ✔️ Installed `httpx` and `rich`
+├── README.md                 # ✔️ Complete with description, setup, and roadmap
+└── venv/                     # ✔️ Virtual environment (excluded via .gitignore)
 
 ---
 
