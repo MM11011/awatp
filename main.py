@@ -1,10 +1,15 @@
 from core.fingerprints import fingerprint_target
 from core.scanner import run_scanner
 from utils.report_writer import save_scan_report
+import asyncio
 
 def main():
     print("🔍 Adaptive Web Application Threat Profiler")
     target = input("Enter target URL (e.g. https://example.com): ").strip()
+
+    if not target:
+        print("❌ No URL provided. Exiting.")
+        return
 
     if not target.startswith("http"):
         print("❌ Please include the scheme (http or https) in the URL.")
@@ -19,7 +24,7 @@ def main():
             print(f"  {key}: {value}")
 
         print("\n🚀 Launching scans...")
-        results = run_scanner(target, info)
+        results = asyncio.run(run_scanner(target, info))
 
         print("\n🧪 Scan Results:")
         for result in results:

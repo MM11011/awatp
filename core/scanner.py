@@ -1,24 +1,17 @@
+import asyncio
 import httpx
 from core.payloads import sql, xss, ssti
 
-def run_scanner(url, fingerprint_info):
-    print("🛠️  Running vulnerability scanner...")
+async def run_scanner(url, fingerprint_info):
+    print("🛠️  Running async vulnerability scanner...")
 
-    results = []
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            sql.scan_for_sqli(client, url),
+            xss.scan_for_xss(client, url),
+            ssti.scan_for_ssti(client, url),
+        ]
 
-    # SQL Injection
-    print("🔎 Running SQL Injection scan...")
-    sql_result = sql.scan_for_sqli(url)
-    results.append(sql_result)
-
-    # Cross-Site Scripting
-    print("🔎 Running XSS scan...")
-    xss_result = xss.scan_for_xss(url)
-    results.append(xss_result)
-
-    # SSTI
-    print("🔎 Running SSTI scan...")
-    ssti_result = ssti.scan_for_ssti(url)
-    results.append(ssti_result)
+        results = await asyncio.gather(*tasks)
 
     return results

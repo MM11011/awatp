@@ -1,11 +1,11 @@
 import httpx
 
-def scan_for_ssti(url):
-    payload = "{{7*7}}"  # Simple Jinja2 payload
+async def scan_for_ssti(client: httpx.AsyncClient, url: str):
+    payload = "{{7*7}}"
     test_url = f"{url}?input={payload}"
 
     try:
-        response = httpx.get(test_url, timeout=10)
+        response = await client.get(test_url, timeout=10)
 
         if "49" in response.text:
             return {

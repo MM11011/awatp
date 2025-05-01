@@ -1,11 +1,11 @@
 import httpx
 
-def scan_for_xss(url):
+async def scan_for_xss(client: httpx.AsyncClient, url: str):
     payload = "<script>alert(1)</script>"
     test_url = f"{url}?q={payload}"
 
     try:
-        response = httpx.get(test_url, timeout=10)
+        response = await client.get(test_url, timeout=10)
 
         if payload in response.text:
             return {

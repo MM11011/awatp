@@ -1,9 +1,9 @@
 import httpx
 
-def scan_for_sqli(url):
+async def scan_for_sqli(client: httpx.AsyncClient, url: str):
     test_url = f"{url}?id=1'"
     try:
-        response = httpx.get(test_url, timeout=10)
+        response = await client.get(test_url, timeout=10)
 
         if "sql" in response.text.lower() or "syntax" in response.text.lower():
             return {
