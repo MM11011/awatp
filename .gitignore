@@ -1,49 +1,34 @@
-# 🔒 Security & Output
-reports/
-*.log
-*.out
-*.json
-*.csv
-.env
-*.pem
-*.key
-*.crt
-
-# 🔧 Python
+# ---------------------------
+# Python (awatp/)
+# ---------------------------
+venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.sqlite3
-*.db
-*.egg-info/
-.venv/
-venv/
+*.log
 
-# 🧪 IDE/Editor-Specific
+# Reports (scan output)
+reports/
+*.json
+
+# IDE / Editor
 .vscode/
 .idea/
 .DS_Store
-*.swp
-*.swo
-*.bak
 
-# 🛠️ Jupyter/IPython
-.ipynb_checkpoints/
-
-# 📦 Packaging/Dist
-dist/
-build/
-*.egg
-
-# 🧪 Test artifacts
-.coverage
-pytest_cache/
-.noseids
-.tox/
-
-# 🐳 Docker/Container (future-proofing)
-*.pid
-*.sock
-docker-compose.override.yml
-
+# ---------------------------
+# Flutter (awatp_ui/)
+# ---------------------------
+awatp_ui/build/
+awatp_ui/.dart_tool/
+awatp_ui/.packages
+awatp_ui/.pub/
+awatp_ui/.flutter-plugins
+awatp_ui/.flutter-plugins-dependencies
+awatp_ui/.metadata
+awatp_ui/pubspec.lock
+awatp_ui/*.iml
+awatp_ui/.DS_Store
+awatp_ui/.idea/
+awatp_ui/.vscode/

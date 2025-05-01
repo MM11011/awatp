@@ -1,29 +1,22 @@
-# 🔍 Adaptive Web Application Threat Profiler (AWATP)
+# 🔍 AWATP – Adaptive Web Application Threat Profiler
 
-AWATP is a Python-based security tool designed to **scan web applications intelligently** by adapting its vulnerability probes based on fingerprinted server-side technology and response behavior.
+AWATP is an adaptive, async-powered Python scanner for web applications. It intelligently fingerprints targets, then dynamically applies selected vulnerability scans based on user input.
 
-It goes beyond static scans by modifying payloads and techniques in real-time depending on:
-- Detected server headers
-- Tech stack hints (e.g., PHP, Flask, Node)
-- Error and status code feedback
+Built for **security engineers, red teamers, and AppSec learners**, AWATP offers a modular, terminal-native experience with JSON reporting and flexible CLI automation.
 
 ---
 
 ## 🚀 Features
 
-- ✅ Server fingerprinting based on HTTP response headers  
-- ✅ Adaptive scanning engine that selects payloads based on detected stack  
-- ✅ Basic SQL Injection detection module (PHP-specific)  
-- ✅ CLI-based interaction with structured output  
-- ✅ Designed with security analysts and SEs in mind
-- ✅ Reflected XSS detection module
-- ✅ Server-Side Template Injection (SSTI) detection module
-- ✅ Enhanced terminal output using `rich` for structured, colored display
+- ✅ Asynchronous scanning engine using `httpx.AsyncClient`
+- ✅ Fingerprints server headers and tech stack hints
+- ✅ Adaptive scan module runner (`sqli`, `xss`, `ssti`)
+- ✅ Terminal UI powered by `rich` for beautiful, structured output
+- ✅ JSON report generation with auto-timestamped filenames
+- ✅ CLI flags for headless use: `--url`, `--json`, `--silent`, `--modules`
+- ✅ Modular and extensible payload structure
 
-## Dependencies
-- [httpx](https://www.python-httpx.org/) – HTTP requests with async support
-- [rich](https://rich.readthedocs.io/) – Terminal styling and pretty tables
-
+---
 
 ## 🛠️ Usage
 
@@ -33,13 +26,39 @@ You can run AWATP interactively or with command-line flags for automation.
 
 ```bash
 python main.py
+```
 
-### ⚙️ Command-Line Options
+You'll be prompted to enter a URL. All scans will run unless otherwise specified.
 
-AWATP supports command-line flags for headless, automated scanning:
+---
+
+### ⚙️ Command-Line Mode
+
+```bash
+python main.py --url https://target.com
+```
+
+Specify scan modules:
 
 ```bash
 python main.py --url https://target.com --modules sqli,xss
+```
+
+Suppress output but save report:
+
+```bash
+python main.py --url https://target.com --json
+```
+
+Fully silent mode:
+
+```bash
+python main.py --url https://target.com --silent
+```
+
+---
+
+### 🔧 CLI Flag Summary
 
 | Flag         | Description                                                              |
 |--------------|--------------------------------------------------------------------------|
@@ -49,57 +68,70 @@ python main.py --url https://target.com --modules sqli,xss
 | `--modules`  | Comma-separated list of scans to run (e.g., `sqli,xss,ssti`)             |
 
 ---
+
 ## 📂 Project Structure
 
-awatp/ 
-├── core/ 
-│ ├── scanner.py 
-│ ├── fingerprints.py 
-│ └── payloads/ 
-│       ├── sql.py 
-│       ├── xss.py 
-│       └── ssti.py 
-├── reports/ 
-├── utils/ 
-│   └──parser.py 
-├── main.py 
-├── requirements.txt 
-├── README.md 
-└── venv/
+```
+awatp/
+├── core/
+│   ├── scanner.py
+│   ├── fingerprints.py
+│   └── payloads/
+│       ├── sql.py
+│       ├── xss.py
+│       └── ssti.py
+├── reports/               # Scan output (JSON)
+├── utils/
+│   └── report_writer.py
+├── main.py
+├── requirements.txt
+├── README.md
+└── venv/                  # Local virtual environment (gitignored)
+```
+
 ---
 
-## 🛠️ Getting Started
+## 📄 Sample Output
 
-### 1. Clone and Set Up
+```
+🎯 Scanning: https://httpbin.org/anything
 
-```bash
-git clone https://github.com/YOUR_USERNAME/awatp.git
-cd awatp
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+📄 Fingerprint Summary
++----------------+---------------------+
+| Field          | Value               |
++----------------+---------------------+
+| Server         | gunicorn/19.9.0     |
+| X-Powered-By   | Unknown             |
+| Content-Type   | application/json    |
+| Status Code    | 200                 |
++----------------+---------------------+
 
-### 2. Run the Profiler
+🧪 Scan Results
++-----------------------------+------------------------+------------+-------------------------------+
+| Type                        | Payload                | Vulnerable | Evidence                      |
++-----------------------------+------------------------+------------+-------------------------------+
+| SQL Injection               | ...?id=1'              | No         | No obvious SQL errors         |
+| Cross-Site Scripting (XSS)  | ...?q=<script>...</>   | No         | Payload not reflected         |
+| Server-Side Template (SSTI) | ...?input={{7*7}}      | No         | Payload not evaluated         |
++-----------------------------+------------------------+------------+-------------------------------+
 
-bash
-Copy
-Edit
-python main.py
-Enter a target URL when prompted (e.g., https://httpbin.org).
+📝 Scan report saved to: reports/scan_httpbin.org_20250501_123456.json
+```
 
-📌 Roadmap
-- [x] Implement adaptive payload modules (SQLi for PHP)
-- [x] Add XSS and SSTI scanning support (both complete)
-- [ ] Add concurrent scanning for multiple URLs
-- [ ] Write scan results to structured JSON
-- [ ] Web UI (Flask or Streamlit)
-- [ ] Docker support for easy deployment
+---
 
-🧠 Inspiration
-This project is inspired by traditional scanners like Nikto and Wapiti, but with a modern, adaptive approach using Python and real-time server analysis. Great for security engineers, SOC analysts, and AppSec learners.
+## 🧠 Inspiration
 
-🤝 Contributing
-Pull requests and feature ideas welcome — let’s build something useful for defenders, testers, and red teamers alike.
+AWATP is inspired by tools like Nikto and Wapiti but reimagined with modern async architecture, modular payloads, and real-time adaptive scanning logic.
 
-📜 License
-MIT License
+---
+
+## 📜 License
+
+MIT License — use, modify, and contribute freely.
+
+---
+
+## 🤝 Contributing
+
+Want to build more modules or enhance fingerprinting? PRs and forks are welcome.
