@@ -1,199 +1,206 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html;
-import 'dart:typed_data';
-import 'package:archive/archive.dart';
 
-void main() => runApp(AWATPApp());
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-class AWATPApp extends StatelessWidget {
+void main() => runApp(const MyApp());
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AWATP Scanner',
-      theme: ThemeData(primarySwatch: Colors.blue),
+    return const MaterialApp(
+      title: 'AWATP Web Scanner',
       home: ScanPage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class ScanPage extends StatefulWidget {
+  const ScanPage({super.key});
+
   @override
   _ScanPageState createState() => _ScanPageState();
 }
 
 class _ScanPageState extends State<ScanPage> {
-  final TextEditingController urlController = TextEditingController();
-  final Map<String, bool> modules = {
-    "sqli": false,
-    "xss": false,
-    "ssti": false,
-  };
-  List<Map<String, dynamic>> scanResults = [];
+  final TextEditingController _urlController = TextEditingController();
+  final List<String> _selectedModules = [];
+  final Map<String, dynamic> _scanResults = {};
+  final String apiUrl = 'http://192.168.101.245:5000/scan'; // replace if needed
 
-  final String apiBase = const String.fromEnvironment(
-    'API_BASE',
-    defaultValue: 'http://localhost:5000',
-  );
-
-  Future<void> runScan() async {
-    final rawUrls = urlController.text.split('\n');
-    final urls = rawUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    final selectedModules =
-        modules.entries.where((e) => e.value).map((e) => e.key).toList();
+  Future<void> _runScan() async {
+    final urls = _urlController.text
+        .split('\n')
+        .map((e) => e.trim())
+        .where((url) => url.isNotEmpty)
+        .toList();
 
     setState(() {
-      scanResults.clear();
+      for (var url in urls) {
+        _scanResults[url] = {'status': 'queued'};
+      }
     });
 
     for (final url in urls) {
+      setState(() {
+        _scanResults[url]['status'] = 'scanning';
+      });
+
       try {
         final response = await http.post(
-          Uri.parse('$apiBase/scan'),
+          Uri.parse(apiUrl),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            "url": url,
-            "modules": selectedModules,
+            'url': url,
+            'modules': _selectedModules,
           }),
         );
 
-        final parsed = jsonDecode(response.body);
+        final data = jsonDecode(response.body);
         setState(() {
-          scanResults.add({
-            "url": url,
-            "status": response.statusCode,
-            "data": parsed,
-          });
+          _scanResults[url] = {
+            'status': 'done',
+            'result': data,
+            'json': const JsonEncoder.withIndent('  ').convert(data)
+          };
         });
       } catch (e) {
         setState(() {
-          scanResults.add({
-            "url": url,
-            "status": 0,
-            "error": e.toString(),
-          });
+          _scanResults[url] = {
+            'status': 'error',
+            'error': e.toString(),
+          };
         });
       }
     }
   }
 
-  void downloadJson(String fileName, Map<String, dynamic> content) {
-    final blob = html.Blob([jsonEncode(content)], 'application/json');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
+  void _downloadAllAsZip() {
+    html.AnchorElement(
+      href: 'http://${apiUrl.split('/')[2]}/download',
+    )
+      ..target = '_blank'
+      ..download = 'scan_results.zip'
       ..click();
-    html.Url.revokeObjectUrl(url);
   }
 
-  void downloadAllAsZip(List<Map<String, dynamic>> results) {
-    final archive = Archive();
+  Widget _buildCheckbox(String label, String value) {
+    return CheckboxListTile(
+      title: Text(label),
+      value: _selectedModules.contains(value),
+      onChanged: (selected) {
+        setState(() {
+          selected!
+              ? _selectedModules.add(value)
+              : _selectedModules.remove(value);
+        });
+      },
+      controlAffinity: ListTileControlAffinity.trailing,
+    );
+  }
 
-    for (var result in results) {
-      final target = result['url'].toString().replaceAll(RegExp(r'https?://'), '').replaceAll('/', '_');
-      final jsonData = const JsonEncoder.withIndent('  ').convert(result['data']);
-      final fileName = 'scan_$target.json';
-      archive.addFile(ArchiveFile(fileName, jsonData.length, Uint8List.fromList(jsonData.codeUnits)));
+  Widget _buildResultCard(String url, dynamic result) {
+    if (result['status'] == 'scanning') {
+      return ListTile(
+        leading: const Text('⏳'),
+        title: Text('$url [Scanning...]'),
+      );
+    } else if (result['status'] == 'queued') {
+      return ListTile(
+        leading: const Icon(Icons.search),
+        title: Text('$url [Queued]'),
+      );
+    } else if (result['status'] == 'error') {
+      return Card(
+        color: Colors.red[100],
+        child: ListTile(
+          leading: const Icon(Icons.cancel, color: Colors.red),
+          title: Text(
+            '$url [Error]',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(result['error']),
+        ),
+      );
+    } else {
+      return Card(
+        color: Colors.green[50],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text('$url [Status: ${result['result']['fingerprint']['Status Code'] ?? 'N/A'}]'),
+              trailing: IconButton(
+                icon: const Icon(Icons.download),
+                tooltip: 'Download JSON',
+                onPressed: () {
+                  final bytes = utf8.encode(result['json']);
+                  final blob = html.Blob([bytes]);
+                  final url = html.Url.createObjectUrlFromBlob(blob);
+                  final anchor = html.AnchorElement(href: url)
+                    ..download = 'scan_result_${Uri.parse(url).host}.json'
+                    ..click();
+                  html.Url.revokeObjectUrl(url);
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(result['json'] ?? 'No data'),
+            ),
+          ],
+        ),
+      );
     }
-
-    final zipData = ZipEncoder().encode(archive)!;
-    final blob = html.Blob([zipData]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'awatp_scan_results.zip')
-      ..click();
-    html.Url.revokeObjectUrl(url);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("AWATP Web Scanner")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text('AWATP Web Scanner')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
-              controller: urlController,
-              maxLines: 5,
-              decoration: InputDecoration(
-                labelText: "Enter one or more target URLs (one per line)",
+              controller: _urlController,
+              decoration: const InputDecoration(
+                labelText: 'Enter one or more target URLs (one per line)',
                 border: OutlineInputBorder(),
               ),
+              maxLines: 6,
             ),
-            SizedBox(height: 10),
-            Column(
-              children: modules.keys.map((module) {
-                return CheckboxListTile(
-                  title: Text(module.toUpperCase()),
-                  value: modules[module],
-                  onChanged: (val) {
-                    setState(() {
-                      modules[module] = val!;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
+            const SizedBox(height: 16),
+            _buildCheckbox('SQLI', 'sqli'),
+            _buildCheckbox('XSS', 'xss'),
+            _buildCheckbox('SSTI', 'ssti'),
+            const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: runScan,
-              child: Text("Run Scan"),
+              onPressed: _runScan,
+              child: const Text('Run Scan'),
             ),
-            SizedBox(height: 10),
-            if (scanResults.isNotEmpty)
+            if (_scanResults.isNotEmpty)
               Align(
                 alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () => downloadAllAsZip(scanResults),
-                  icon: Icon(Icons.archive),
-                  label: Text("Download All as ZIP"),
+                child: TextButton.icon(
+                  onPressed: _downloadAllAsZip,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Download All as ZIP'),
                 ),
               ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
-                itemCount: scanResults.length,
-                itemBuilder: (context, index) {
-                  final item = scanResults[index];
-                  final url = item['url'];
-                  final status = item['status'];
-
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: item.containsKey('error')
-                          ? Text("❌ $url\nError: ${item['error']}")
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("✅ $url [Status: $status]", style: TextStyle(fontWeight: FontWeight.bold)),
-                                SizedBox(height: 8),
-                                Text(
-                                  const JsonEncoder.withIndent('  ').convert(item['data']),
-                                  style: TextStyle(fontFamily: 'monospace'),
-                                ),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton.icon(
-                                    icon: Icon(Icons.download),
-                                    label: Text("Download JSON"),
-                                    onPressed: () {
-                                      final filename = "scan_${url.replaceAll(RegExp(r'https?://'), '').replaceAll('/', '_')}.json";
-                                      downloadJson(filename, item['data']);
-                                    },
-                                  ),
-                                )
-                              ],
-                            ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            const SizedBox(height: 10),
+            ..._scanResults.entries
+                .map((entry) => _buildResultCard(entry.key, entry.value))
+                .toList(),
           ],
         ),
       ),
     );
   }
 }
+

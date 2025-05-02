@@ -1,184 +1,109 @@
-# 🔍 AWATP – Adaptive Web Application Threat Profiler
+# AWATP (Adaptive Web Application Threat Profiler)
 
-AWATP is an adaptive, async-powered Python scanner for web applications. It intelligently fingerprints targets, then dynamically applies selected vulnerability scans based on user input.
-
-Built for security engineers and AppSec enthusiasts, AWATP provides both a command-line tool and a web-based UI powered by Flutter.
-
----
-
-## 🚀 Features
-
-- ✅ Asynchronous scanning engine using `httpx.AsyncClient`
-- ✅ Fingerprints server headers and technologies
-- ✅ Selective scan modules: `SQLi`, `XSS`, `SSTI`
-- ✅ JSON report generation with auto-timestamped filenames
-- ✅ CLI and Web UI support
-- ✅ Modular architecture for custom payloads
-- ✅ Rich terminal output with `rich`
-- ✅ Cross-origin enabled Flask API backend
-- ✅ Multi-target scanning (CLI and Web UI)
-
----
-
-## 🛠️ Usage
-
-### 🔁 CLI Mode (Python)
-
-From the `awatp/` directory:
-
-```bash
-source venv/bin/activate
-python main.py --url https://example.com --modules sqli,xss
-```
-
-### 📁 Multi-URL Scanning
-
-You can scan many targets from a file:
-
-```bash
-python main.py --input targets.txt --modules sqli,xss
-```
-
-Each line in the file should be a full URL including `http` or `https`.
-A report will be saved for each target in `/reports/`.
-
----
-
-### 📡 API Mode (Python Flask)
-
-```bash
-cd awatp/
-source venv/bin/activate
-python awatp_api.py
-```
-
-Make sure your `awatp_api.py` includes this:
-
-```python
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
-app.run(host='0.0.0.0', port=5000)
-```
-
-This allows CORS access and enables access from your local network.
-
----
-
-### 🖼 Web UI Mode (Flutter)
-
-🛡 Secure API Base Configuration
-To avoid hardcoding your local IP in the Flutter app, AWATP uses a runtime environment variable via --dart-define.
-
-Step 1: Update main.dart
-
-Your main.dart should include:
-
-const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'http://localhost:5000');
-final url = Uri.parse('$apiBase/scan');
-
-Step 2: Run the UI with your local IP
-
-flutter run -d chrome --dart-define=API_BASE=http://192.168.x.x:5000
-Replace 192.168.x.x with your actual local IP address (e.g. 192.168.1.5).
-
----
-
-### 🌐 Multi-Target Support (Web)
-
-You can enter multiple target URLs (one per line) directly in the Flutter UI.
-
-- Each URL will be scanned individually
-- Results will be displayed in their own card
-- Works with all module combinations
-
-Make sure your Flask backend is running at your machine's local IP address,
-and that CORS is enabled with `CORS(app)` in `awatp_api.py`.
-
-Update `main.dart` with:
-
-```dart
-Uri.parse('http://192.168.x.x:5000/scan')
-```
-
----
-
-## ⚙️ CLI Flags Summary
-
-| Flag         | Description                                                        |
-|--------------|--------------------------------------------------------------------|
-| `--url`      | Target URL to scan                                                 |
-| `--input`    | Path to file containing URLs to scan                               |
-| `--modules`  | Comma-separated list of modules to run (`sqli,xss,ssti`)           |
-| `--json`     | Suppress terminal output; JSON report only                         |
-| `--silent`   | Suppress all output except critical errors                         |
+AWATP is a hybrid CLI + Flutter-based adaptive web application vulnerability scanner. It enables multi-target scanning using selectable modules (SQLi, XSS, SSTI), provides fingerprinting, and generates downloadable per-scan and batch reports in JSON or ZIP.
 
 ---
 
 ## 📂 Project Structure
 
 ```
-/Projects/
-├── awatp/         ← Python scanner + API
-│   ├── core/
-│   ├── reports/
-│   ├── utils/
-│   ├── main.py
-│   ├── awatp_api.py
-│   ├── requirements.txt
-│   └── venv/
-└── awatp_ui/      ← Flutter web UI
-    ├── lib/
-    ├── pubspec.yaml
-    └── ...
+awatp/
+├── core/
+│   ├── scanner.py
+│   ├── fingerprints.py
+│   └── payloads/
+│       ├── sql.py
+│       ├── xss.py
+│       └── ssti.py
+├── reports/
+├── utils/
+│   ├── parser.py
+│   └── report_writer.py
+├── awatp_api.py
+├── main.py
+├── test.py
+├── requirements.txt
+├── .gitignore
+├── .gitattributes
+├── README.md
+└── awatp_ui/ (Flutter UI)
 ```
 
 ---
 
-## 🧪 Sample Output
+## 🚀 Features
 
-```json
-{
-  "target": "https://httpbin.org/anything",
-  "fingerprint": {
-    "Server": "gunicorn/19.9.0",
-    ...
-  },
-  "results": [
-    {
-      "type": "SQL Injection",
-      "vulnerable": false,
-      ...
-    }
-  ]
-}
-```
+- Multi-target URL scanning (CLI + Web UI)
+- Modular vulnerability scanning (SQLi, XSS, SSTI)
+- JSON-based scan reports (CLI + Web)
+- Download scan results individually or in batch (ZIP)
+- Real-time scan status updates in UI
+- Fingerprint detection (headers, status, etc.)
+- Flask backend API for asynchronous scan handling
 
 ---
 
-## 💡 Dual Launch Option (CLI + Web)
+## 📦 Requirements
 
-To launch CLI or Web UI easily:
+### Python
+- Python 3.8+
+- Flask
 
+Install Python dependencies:
 ```bash
-# Launch CLI scan
-source venv/bin/activate
-python main.py --url https://example.com --modules sqli,xss
+pip install -r requirements.txt
+```
 
-# Launch Web UI
-# Terminal 1:
-cd awatp/
-source venv/bin/activate
+### Flutter UI
+- Flutter 3.x
+- Dart SDK
+- VS Code or Android Studio
+- Chrome (for web testing)
+
+---
+
+## 🧪 Usage
+
+### Run Backend API (Python)
+```bash
 python awatp_api.py
+```
 
-# Terminal 2:
-cd awatp_ui/
+Make sure it's running at:
+```
+http://<your_local_ip>:5000
+```
+
+---
+
+### Run Flutter Frontend
+```bash
+cd awatp_ui
 flutter run -d chrome
 ```
 
+Ensure `lib/main.dart` is updated to use your local IP for the Flask backend.
+
 ---
 
-## 📜 License
+## 📝 Scan Results
 
-MIT License
+- CLI and Flutter generate JSON reports under `reports/`
+- Each scan result is named: `scan_<domain>_<timestamp>.json`
+- The Flutter app offers:
+  - Individual scan download 📥
+  - Batch export as ZIP 🗂️
+
+---
+
+## ✅ Next Features (Roadmap)
+
+- 🔄 Scan progress bar in UI
+- 🌐 Scan history browser
+- 📊 Threat dashboard
+- 📤 Export as CSV / PDF
+- 🔒 Login & role-based access
+
+---
+
+© 2025 AWATP Project
