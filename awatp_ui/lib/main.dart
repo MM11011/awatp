@@ -29,6 +29,12 @@ class _ScanPageState extends State<ScanPage> {
   };
   List<Map<String, dynamic>> scanResults = [];
 
+  // Use environment variable to keep API base out of source
+  final String apiBase = const String.fromEnvironment(
+    'API_BASE',
+    defaultValue: 'http://localhost:5000',
+  );
+
   Future<void> runScan() async {
     final rawUrls = urlController.text.split('\n');
     final urls = rawUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -42,7 +48,7 @@ class _ScanPageState extends State<ScanPage> {
     for (final url in urls) {
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.101.245:5000/scan'),
+          Uri.parse('$apiBase/scan'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             "url": url,
