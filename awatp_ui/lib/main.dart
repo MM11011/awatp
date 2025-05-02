@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:html' as html;
 
 void main() => runApp(AWATPApp());
 
@@ -29,7 +30,6 @@ class _ScanPageState extends State<ScanPage> {
   };
   List<Map<String, dynamic>> scanResults = [];
 
-  // Use environment variable to keep API base out of source
   final String apiBase = const String.fromEnvironment(
     'API_BASE',
     defaultValue: 'http://localhost:5000',
@@ -74,6 +74,15 @@ class _ScanPageState extends State<ScanPage> {
         });
       }
     }
+  }
+
+  void downloadJson(String fileName, Map<String, dynamic> content) {
+    final blob = html.Blob([jsonEncode(content)], 'application/json');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 
   @override
@@ -133,6 +142,17 @@ class _ScanPageState extends State<ScanPage> {
                                   const JsonEncoder.withIndent('  ').convert(item['data']),
                                   style: TextStyle(fontFamily: 'monospace'),
                                 ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    icon: Icon(Icons.download),
+                                    label: Text("Download JSON"),
+                                    onPressed: () {
+                                      final filename = "scan_${url.replaceAll(RegExp(r'https?://'), '').replaceAll('/', '_')}.json";
+                                      downloadJson(filename, item['data']);
+                                    },
+                                  ),
+                                )
                               ],
                             ),
                     ),

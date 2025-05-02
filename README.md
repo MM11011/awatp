@@ -68,19 +68,20 @@ This allows CORS access and enables access from your local network.
 
 ### 🖼 Web UI Mode (Flutter)
 
-In a separate terminal:
+🛡 Secure API Base Configuration
+To avoid hardcoding your local IP in the Flutter app, AWATP uses a runtime environment variable via --dart-define.
 
-```bash
-cd awatp_ui/
-flutter pub get
-flutter run -d chrome
-```
+Step 1: Update main.dart
 
-Then in the browser:
-- Enter one or more URLs (one per line)
-- Select modules
-- Click "Run Scan"
-- Results will appear below, and are saved to `/awatp/reports/`
+Your main.dart should include:
+
+const apiBase = String.fromEnvironment('API_BASE', defaultValue: 'http://localhost:5000');
+final url = Uri.parse('$apiBase/scan');
+
+Step 2: Run the UI with your local IP
+
+flutter run -d chrome --dart-define=API_BASE=http://192.168.x.x:5000
+Replace 192.168.x.x with your actual local IP address (e.g. 192.168.1.5).
 
 ---
 
