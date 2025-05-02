@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'threat_dashboard.dart';
+import 'recon_page.dart'; // 👈 Add this import
 
 void main() {
   runApp(const MyApp());
@@ -12,17 +13,16 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AWATP Web Scanner',
+      title: 'AWATP',
       theme: ThemeData(
+        primarySwatch: Colors.blue,
         useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: Colors.deepPurple,
       ),
       home: const ScanPage(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -36,213 +36,147 @@ class ScanPage extends StatefulWidget {
 
 class _ScanPageState extends State<ScanPage> {
   final TextEditingController _urlController = TextEditingController();
-  final Map<String, dynamic> _scanResults = {};
-  bool _scanning = false;
-
-  final Map<String, bool> _scanModules = {
-    'SQLI': false,
-    'XSS': false,
-    'SSTI': false,
+  final List<String> _scanModules = ['sqli', 'xss', 'ssti'];
+  final Map<String, bool> _selectedModules = {
+    'sqli': false,
+    'xss': false,
+    'ssti': false,
   };
+  Map<String, dynamic> _scanResults = {};
+  bool _isLoading = false;
 
-  Future<void> _runScan() async {
+  Future<void> _startScan() async {
     final urls = _urlController.text
-        .split('\n')
+        .split(',')
         .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
+        .where((url) => url.isNotEmpty)
         .toList();
 
-    final selectedModules =
-        _scanModules.entries.where((e) => e.value).map((e) => e.key).toList();
+    final selected = _selectedModules.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
 
-    if (urls.isEmpty || selectedModules.isEmpty) {
-      return;
-    }
+    if (urls.isEmpty || selected.isEmpty) return;
 
     setState(() {
-      _scanning = true;
+      _isLoading = true;
       _scanResults.clear();
     });
 
-    for (final url in urls) {
+    final response = await http.post(
+      Uri.parse('http://localhost:5000/scan'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'urls': urls,
+        'modules': selected,
+      }),
+    );
+
+    if (response.statusCode == 200) {
       setState(() {
-        _scanResults[url] = {'status': 'Queued'};
+        _scanResults = jsonDecode(response.body);
       });
-
-      try {
-        final response = await http.post(
-          Uri.parse('http://localhost:5000/scan'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'url': url, 'modules': selectedModules}),
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          setState(() {
-            _scanResults[url] = {'status': 'Success', 'data': data};
-          });
-        } else {
-          setState(() {
-            _scanResults[url] = {
-              'status': 'Error',
-              'message': 'HTTP ${response.statusCode}'
-            };
-          });
-        }
-      } catch (e) {
-        setState(() {
-          _scanResults[url] = {'status': 'Error', 'message': '$e'};
-        });
-      }
+    } else {
+      setState(() {
+        _scanResults = {'error': 'Scan failed: ${response.statusCode}'};
+      });
     }
 
     setState(() {
-      _scanning = false;
+      _isLoading = false;
     });
   }
 
-  void _downloadAllAsZip() {
-    for (final entry in _scanResults.entries) {
-      if (entry.value['status'] != 'Success') continue;
-
-      final result = entry.value['data'];
-      final json = const JsonEncoder.withIndent('  ').convert(result);
-      final blob = html.Blob([json], 'application/json');
-      final safeFilename =
-          entry.key.replaceAll(RegExp(r"https?://"), "").replaceAll("/", "_");
-      final filename =
-          'scan_${safeFilename}_${DateTime.now().toIso8601String()}.json';
-      final blobUrl = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: blobUrl)
-        ..setAttribute("download", filename)
-        ..click();
-      html.Url.revokeObjectUrl(blobUrl);
-    }
-  }
-
-  void _navigateToDashboard() {
-    final dashboardData = _scanResults.entries
-        .where((entry) => entry.value['status'] == 'Success')
-        .expand((entry) =>
-            ((entry.value['data'] as Map<String, dynamic>)['results'] as List)
-                .where((r) => r['vulnerable'] == true)
-                .map((r) => r['type'] as String))
-        .fold<Map<String, int>>({}, (acc, type) {
-          acc[type] = (acc[type] ?? 0) + 1;
-          return acc;
-        })
-        .entries
-        .map((e) => {'type': e.key, 'count': e.value})
-        .toList();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ThreatDashboard(vulnerabilityData: dashboardData),
-      ),
-    );
-  }
-
-  Widget _buildResultCard(String url, dynamic result) {
-    final status = result['status'];
-    final color = switch (status) {
-      'Queued' => Colors.grey.shade200,
-      'Error' => Colors.red.shade100,
-      'Success' => Colors.green.shade50,
-      _ => Colors.yellow.shade100,
-    };
-
-    return Card(
-      color: color,
-      child: ExpansionTile(
-        leading: Icon(
-          switch (status) {
-            'Success' => Icons.check_circle,
-            'Error' => Icons.cancel,
-            _ => Icons.hourglass_top,
-          },
-          color: switch (status) {
-            'Success' => Colors.green,
-            'Error' => Colors.red,
-            _ => Colors.orange,
-          },
-        ),
-        title: Text('$url [$status]',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        children: [
-          if (status == 'Success')
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SelectableText(
-                const JsonEncoder.withIndent('  ')
-                    .convert(result['data']),
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            )
-          else if (result['message'] != null)
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Text(result['message']),
-            ),
-        ],
-      ),
-    );
+  void _downloadReport(String filename, Map<String, dynamic> data) {
+    final blob = html.Blob([jsonEncode(data)], 'application/json');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', filename)
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 
   @override
   Widget build(BuildContext context) {
-    final resultWidgets = _scanResults.entries
-        .map((entry) => _buildResultCard(entry.key, entry.value))
-        .toList();
-
     return Scaffold(
       appBar: AppBar(title: const Text('AWATP Web Scanner')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
+        child: Column(
           children: [
+            const Text('Enter target URLs (comma separated)'),
+            const SizedBox(height: 8),
             TextField(
               controller: _urlController,
-              maxLines: 5,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: 'Enter one or more target URLs (one per line)',
+                hintText: 'https://example.com, https://test.com',
               ),
             ),
-            const SizedBox(height: 12),
-            const Text('Select Scan Modules:'),
-            ..._scanModules.entries.map((e) => CheckboxListTile(
-                  title: Text(e.key),
-                  value: e.value,
-                  onChanged: (val) {
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              children: _scanModules.map((module) {
+                return FilterChip(
+                  label: Text(module.toUpperCase()),
+                  selected: _selectedModules[module]!,
+                  onSelected: (value) {
                     setState(() {
-                      _scanModules[e.key] = val ?? false;
+                      _selectedModules[module] = value;
                     });
                   },
-                )),
-            const SizedBox(height: 12),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: _scanning ? null : _runScan,
-                  child: const Text('Run Scan'),
+                  onPressed: _startScan,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Start Scan'),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _scanResults.isEmpty ? null : _navigateToDashboard,
-                  child: const Text('View Dashboard'),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.search),
+                  label: const Text('Open Recon Module'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ReconPage()),
+                    );
+                  },
                 ),
-                const Spacer(),
-                if (_scanResults.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: _downloadAllAsZip,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download JSON'),
-                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            ...resultWidgets,
+            const SizedBox(height: 24),
+            Expanded(
+              child: _scanResults.isEmpty
+                  ? const Text('No scan results yet.')
+                  : ListView(
+                      children: _scanResults.entries.map((entry) {
+                        final data = entry.value;
+                        final filename =
+                            'scan_${entry.key.replaceAll(RegExp(r"https?://"), "").replaceAll("/", "_")}_${DateTime.now().toIso8601String()}.json';
+                        return Card(
+                          child: ListTile(
+                            title: Text(entry.key),
+                            subtitle: Text(jsonEncode(data)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.download),
+                              onPressed: () => _downloadReport(filename, data),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+            ),
           ],
         ),
       ),
