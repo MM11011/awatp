@@ -2,25 +2,34 @@
 
 AWATP is an adaptive, async-powered Python scanner for web applications. It intelligently fingerprints targets, then dynamically applies selected vulnerability scans based on user input.
 
-Built for **security engineers, red teamers, and AppSec learners**, AWATP offers a modular, terminal-native experience with JSON reporting and flexible CLI automation.
+Built for security engineers and AppSec enthusiasts, AWATP provides both a command-line tool and a web-based UI powered by Flutter.
 
 ---
 
 ## 🚀 Features
 
 - ✅ Asynchronous scanning engine using `httpx.AsyncClient`
-- ✅ Fingerprints server headers and tech stack hints
-- ✅ Adaptive scan module runner (`sqli`, `xss`, `ssti`)
-- ✅ Terminal UI powered by `rich` for beautiful, structured output
+- ✅ Fingerprints server headers and technologies
+- ✅ Selective scan modules: `SQLi`, `XSS`, `SSTI`
 - ✅ JSON report generation with auto-timestamped filenames
-- ✅ CLI flags for headless use: `--url`, `--json`, `--silent`, `--modules`
-- ✅ Modular and extensible payload structure
+- ✅ CLI and Web UI support
+- ✅ Modular architecture for custom payloads
+- ✅ Rich terminal output with `rich`
+- ✅ Cross-origin enabled Flask API backend
+- ✅ Multi-target scanning (CLI and Web UI)
 
 ---
 
 ## 🛠️ Usage
 
-You can run AWATP interactively or with command-line flags for automation.
+### 🔁 CLI Mode (Python)
+
+From the `awatp/` directory:
+
+```bash
+source venv/bin/activate
+python main.py --url https://example.com --modules sqli,xss
+```
 
 ### 📁 Multi-URL Scanning
 
@@ -28,118 +37,147 @@ You can scan many targets from a file:
 
 ```bash
 python main.py --input targets.txt --modules sqli,xss
-
-
-### 🔁 Interactive Mode
-
-```bash
-python main.py
 ```
 
-You'll be prompted to enter a URL. All scans will run unless otherwise specified.
+Each line in the file should be a full URL including `http` or `https`.
+A report will be saved for each target in `/reports/`.
 
 ---
 
-### ⚙️ Command-Line Mode
+### 📡 API Mode (Python Flask)
 
 ```bash
-python main.py --url https://target.com
+cd awatp/
+source venv/bin/activate
+python awatp_api.py
 ```
 
-Specify scan modules:
+Make sure your `awatp_api.py` includes this:
 
-```bash
-python main.py --url https://target.com --modules sqli,xss
+```python
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+app.run(host='0.0.0.0', port=5000)
 ```
 
-Suppress output but save report:
+This allows CORS access and enables access from your local network.
+
+---
+
+### 🖼 Web UI Mode (Flutter)
+
+In a separate terminal:
 
 ```bash
-python main.py --url https://target.com --json
+cd awatp_ui/
+flutter pub get
+flutter run -d chrome
 ```
 
-Fully silent mode:
+Then in the browser:
+- Enter one or more URLs (one per line)
+- Select modules
+- Click "Run Scan"
+- Results will appear below, and are saved to `/awatp/reports/`
 
-```bash
-python main.py --url https://target.com --silent
+---
+
+### 🌐 Multi-Target Support (Web)
+
+You can enter multiple target URLs (one per line) directly in the Flutter UI.
+
+- Each URL will be scanned individually
+- Results will be displayed in their own card
+- Works with all module combinations
+
+Make sure your Flask backend is running at your machine's local IP address,
+and that CORS is enabled with `CORS(app)` in `awatp_api.py`.
+
+Update `main.dart` with:
+
+```dart
+Uri.parse('http://192.168.x.x:5000/scan')
 ```
 
 ---
 
-### 🔧 CLI Flag Summary
+## ⚙️ CLI Flags Summary
 
-| Flag         | Description                                                              |
-|--------------|--------------------------------------------------------------------------|
-| `--url`      | Provide a target URL directly                                            |
-| `--json`     | Output only JSON report (no console output)                              |
-| `--silent`   | Suppress all output except fatal errors                                  |
-| `--modules`  | Comma-separated list of scans to run (e.g., `sqli,xss,ssti`)             |
+| Flag         | Description                                                        |
+|--------------|--------------------------------------------------------------------|
+| `--url`      | Target URL to scan                                                 |
+| `--input`    | Path to file containing URLs to scan                               |
+| `--modules`  | Comma-separated list of modules to run (`sqli,xss,ssti`)           |
+| `--json`     | Suppress terminal output; JSON report only                         |
+| `--silent`   | Suppress all output except critical errors                         |
 
 ---
 
 ## 📂 Project Structure
 
 ```
-awatp/
-├── core/
-│   ├── scanner.py
-│   ├── fingerprints.py
-│   └── payloads/
-│       ├── sql.py
-│       ├── xss.py
-│       └── ssti.py
-├── reports/               # Scan output (JSON)
-├── utils/
-│   └── report_writer.py
-├── main.py
-├── requirements.txt
-├── README.md
-└── venv/                  # Local virtual environment (gitignored)
+/Projects/
+├── awatp/         ← Python scanner + API
+│   ├── core/
+│   ├── reports/
+│   ├── utils/
+│   ├── main.py
+│   ├── awatp_api.py
+│   ├── requirements.txt
+│   └── venv/
+└── awatp_ui/      ← Flutter web UI
+    ├── lib/
+    ├── pubspec.yaml
+    └── ...
 ```
 
 ---
 
-## 📄 Sample Output
+## 🧪 Sample Output
 
-```
-🎯 Scanning: https://httpbin.org/anything
-
-📄 Fingerprint Summary
-+----------------+---------------------+
-| Field          | Value               |
-+----------------+---------------------+
-| Server         | gunicorn/19.9.0     |
-| X-Powered-By   | Unknown             |
-| Content-Type   | application/json    |
-| Status Code    | 200                 |
-+----------------+---------------------+
-
-🧪 Scan Results
-+-----------------------------+------------------------+------------+-------------------------------+
-| Type                        | Payload                | Vulnerable | Evidence                      |
-+-----------------------------+------------------------+------------+-------------------------------+
-| SQL Injection               | ...?id=1'              | No         | No obvious SQL errors         |
-| Cross-Site Scripting (XSS)  | ...?q=<script>...</>   | No         | Payload not reflected         |
-| Server-Side Template (SSTI) | ...?input={{7*7}}      | No         | Payload not evaluated         |
-+-----------------------------+------------------------+------------+-------------------------------+
-
-📝 Scan report saved to: reports/scan_httpbin.org_20250501_123456.json
+```json
+{
+  "target": "https://httpbin.org/anything",
+  "fingerprint": {
+    "Server": "gunicorn/19.9.0",
+    ...
+  },
+  "results": [
+    {
+      "type": "SQL Injection",
+      "vulnerable": false,
+      ...
+    }
+  ]
+}
 ```
 
 ---
 
-## 🧠 Inspiration
+## 💡 Dual Launch Option (CLI + Web)
 
-AWATP is inspired by tools like Nikto and Wapiti but reimagined with modern async architecture, modular payloads, and real-time adaptive scanning logic.
+To launch CLI or Web UI easily:
+
+```bash
+# Launch CLI scan
+source venv/bin/activate
+python main.py --url https://example.com --modules sqli,xss
+
+# Launch Web UI
+# Terminal 1:
+cd awatp/
+source venv/bin/activate
+python awatp_api.py
+
+# Terminal 2:
+cd awatp_ui/
+flutter run -d chrome
+```
 
 ---
 
 ## 📜 License
 
-MIT License — use, modify, and contribute freely.
-
----
-
-## 🤝 Contributing
-
-Want to build more modules or enhance fingerprinting? PRs and forks are welcome.
+MIT License
