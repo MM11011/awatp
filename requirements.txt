@@ -2,5 +2,6 @@ httpx==0.27.0
 rich==13.7.0
 flask
 pip freeze > requirements.txt
+requests
 
 

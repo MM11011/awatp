@@ -5,7 +5,6 @@ def fingerprint_target(url):
         response = httpx.get(url, timeout=10)
         headers = response.headers
 
-        # Extract fingerprint info
         server = headers.get("Server", "Unknown")
         powered_by = headers.get("X-Powered-By", "Unknown")
         content_type = headers.get("Content-Type", "Unknown")
@@ -20,3 +19,6 @@ def fingerprint_target(url):
     except httpx.RequestError as e:
         print(f"❌ Request failed: {e}")
         return None
+
+# ✅ Fix import issue
+fingerprint_url = fingerprint_target

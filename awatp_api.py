@@ -1,60 +1,48 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import asyncio
-from core.fingerprints import fingerprint_target
-from core.scanner import run_scanner
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import json
 
-from modules.recon import perform_recon
+from core.scanners import run_scan_modules
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all domains
+CORS(app)
 
-
-@app.route('/')
-def index():
-    return jsonify({'message': 'AWATP API is running'})
-
-
-@app.route('/scan', methods=['POST'])
+@app.route("/scan", methods=["POST"])
 def scan():
     data = request.get_json()
-    urls = data.get('urls', [])
-    selected_modules = data.get('modules', [])
+    urls = data.get("urls", [])
+    modules = data.get("modules", ["sqli", "xss", "ssti", "open_redirect"])
 
-    async def run_all():
+    # Load blocked domains
+    try:
+        with open("blocked_domains.json", "r") as f:
+            blocked_domains = set(json.load(f))
+    except FileNotFoundError:
+        blocked_domains = {"google.com", "facebook.com", "youtube.com"}  # Fallback defaults
+
+    def is_blocked(url):
+        return any(domain in url for domain in blocked_domains)
+
+    async def scan_all():
         results = {}
         for url in urls:
-            info = fingerprint_target(url)
-            scan_results = await run_scanner(url, info, selected_modules)
-            results[url] = {
-                "fingerprint": info,
-                "results": scan_results
-            }
+            if is_blocked(url):
+                results[url] = {"error": "Domain is blocked from scanning."}
+            else:
+                results[url] = await run_scan_modules(url, modules)
         return results
 
-    final_results = asyncio.run(run_all())
-    return jsonify(final_results)
+    scan_results = asyncio.run(scan_all())
+    return jsonify(scan_results)
 
-
-@app.route('/recon', methods=['POST'])
+@app.route("/recon", methods=["POST"])
 def recon():
+    from modules.recon import perform_recon
     data = request.get_json()
-    urls = data.get('urls', [])
-    results = {}
-
-    for url in urls:
-        recon_result = perform_recon(url)
-        results[url] = recon_result
-
+    urls = data.get("urls", [])
+    results = {url: perform_recon(url) for url in urls}
     return jsonify(results)
 
-
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
-
+if __name__ == "__main__":
+    app.run(debug=True)

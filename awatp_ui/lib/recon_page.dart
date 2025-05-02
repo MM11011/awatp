@@ -1,23 +1,23 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class ReconPage extends StatefulWidget {
   const ReconPage({super.key});
 
   @override
-  _ReconPageState createState() => _ReconPageState();
+  State<ReconPage> createState() => _ReconPageState();
 }
 
 class _ReconPageState extends State<ReconPage> {
   final TextEditingController _urlController = TextEditingController();
-  bool _isLoading = false;
   Map<String, dynamic> _reconResults = {};
+  bool _isLoading = false;
 
-  Future<void> _performRecon() async {
+  Future<void> _runRecon() async {
     final urls = _urlController.text
         .split(',')
-        .map((e) => e.trim())
+        .map((url) => url.trim())
         .where((url) => url.isNotEmpty)
         .toList();
 
@@ -28,67 +28,71 @@ class _ReconPageState extends State<ReconPage> {
       _reconResults.clear();
     });
 
-    final response = await http.post(
-      Uri.parse('http://localhost:5000/recon'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'urls': urls}),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/recon'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'urls': urls}),
+      );
 
-    if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
+        setState(() {
+          _reconResults = jsonDecode(response.body);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recon failed: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
       setState(() {
-        _reconResults = jsonDecode(response.body);
-      });
-    } else {
-      setState(() {
-        _reconResults = {
-          'error': 'Failed to fetch recon data. (${response.statusCode})'
-        };
+        _isLoading = false;
       });
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recon Module')),
+      appBar: AppBar(
+        title: const Text('Recon Module'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter URLs separated by commas'),
-            const SizedBox(height: 8),
             TextField(
               controller: _urlController,
               decoration: const InputDecoration(
+                labelText: 'Enter domains (comma separated)',
                 border: OutlineInputBorder(),
-                hintText: 'example.com, httpbin.org',
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: _performRecon,
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Run Recon'),
+              onPressed: _isLoading ? null : _runRecon,
+              child: const Text('Run Recon'),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Expanded(
-              child: _reconResults.isEmpty
-                  ? const Text('No recon data yet.')
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
                   : ListView(
                       children: _reconResults.entries.map((entry) {
+                        final ip = entry.value['resolved_ip'] ?? 'Unknown';
                         return ListTile(
-                          leading: const Icon(Icons.search),
+                          leading: const Icon(Icons.public),
                           title: Text(entry.key),
-                          subtitle: Text(entry.value.toString()),
+                          subtitle: Text('Resolved IP: $ip'),
                         );
                       }).toList(),
                     ),
-            ),
+            )
           ],
         ),
       ),

@@ -6,7 +6,6 @@ async def scan_for_xss(client: httpx.AsyncClient, url: str):
 
     try:
         response = await client.get(test_url, timeout=10)
-
         if payload in response.text:
             return {
                 "type": "Cross-Site Scripting (Reflected)",
@@ -29,3 +28,6 @@ async def scan_for_xss(client: httpx.AsyncClient, url: str):
             "vulnerable": False,
             "evidence": f"Request failed: {str(e)}"
         }
+
+# Fix for import
+test_xss = scan_for_xss

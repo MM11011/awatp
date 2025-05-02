@@ -1,31 +1,19 @@
-import httpx
+# core/payloads/ssti.py
 
-async def scan_for_ssti(client: httpx.AsyncClient, url: str):
+async def scan_for_ssti(client, url):
     payload = "{{7*7}}"
-    test_url = f"{url}?input={payload}"
-
     try:
-        response = await client.get(test_url, timeout=10)
-
-        if "49" in response.text:
-            return {
-                "type": "Server-Side Template Injection (SSTI)",
-                "payload": test_url,
-                "vulnerable": True,
-                "evidence": "Evaluated expression (49) found in response"
-            }
-
+        response = await client.get(url, params={"q": payload}, timeout=10)
+        vulnerable = "49" in response.text
         return {
-            "type": "Server-Side Template Injection (SSTI)",
-            "payload": test_url,
-            "vulnerable": False,
-            "evidence": "Payload not evaluated"
+            "type": "SSTI",
+            "payload": payload,
+            "evidence": response.text if vulnerable else "No SSTI detected",
+            "vulnerable": vulnerable,
+            "ssti": int(vulnerable)
         }
-
-    except httpx.RequestError as e:
+    except Exception as e:
         return {
-            "type": "Server-Side Template Injection (SSTI)",
-            "payload": test_url,
-            "vulnerable": False,
-            "evidence": f"Request failed: {str(e)}"
+            "error": str(e),
+            "ssti": 0
         }
