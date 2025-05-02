@@ -27,26 +27,47 @@ class _ScanPageState extends State<ScanPage> {
     "xss": false,
     "ssti": false,
   };
-  String result = "";
+  List<Map<String, dynamic>> scanResults = [];
 
   Future<void> runScan() async {
+    final rawUrls = urlController.text.split('\n');
+    final urls = rawUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     final selectedModules =
         modules.entries.where((e) => e.value).map((e) => e.key).toList();
 
-    final response = await http.post(
-      Uri.parse('http://localhost:5000/scan'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "url": urlController.text,
-        "modules": selectedModules,
-      }),
-    );
-
     setState(() {
-      result = response.statusCode == 200
-          ? const JsonEncoder.withIndent('  ').convert(jsonDecode(response.body))
-          : "Error: ${response.statusCode}";
+      scanResults.clear();
     });
+
+    for (final url in urls) {
+      try {
+        final response = await http.post(
+          Uri.parse('http://192.168.101.245:5000/scan'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            "url": url,
+            "modules": selectedModules,
+          }),
+        );
+
+        final parsed = jsonDecode(response.body);
+        setState(() {
+          scanResults.add({
+            "url": url,
+            "status": response.statusCode,
+            "data": parsed,
+          });
+        });
+      } catch (e) {
+        setState(() {
+          scanResults.add({
+            "url": url,
+            "status": 0,
+            "error": e.toString(),
+          });
+        });
+      }
+    }
   }
 
   @override
@@ -59,7 +80,11 @@ class _ScanPageState extends State<ScanPage> {
           children: [
             TextField(
               controller: urlController,
-              decoration: InputDecoration(labelText: "Enter Target URL"),
+              maxLines: 5,
+              decoration: InputDecoration(
+                labelText: "Enter one or more target URLs (one per line)",
+                border: OutlineInputBorder(),
+              ),
             ),
             SizedBox(height: 10),
             Column(
@@ -75,15 +100,38 @@ class _ScanPageState extends State<ScanPage> {
                 );
               }).toList(),
             ),
-            SizedBox(height: 10),
             ElevatedButton(
               onPressed: runScan,
               child: Text("Run Scan"),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             Expanded(
-              child: SingleChildScrollView(
-                child: SelectableText(result),
+              child: ListView.builder(
+                itemCount: scanResults.length,
+                itemBuilder: (context, index) {
+                  final item = scanResults[index];
+                  final url = item['url'];
+                  final status = item['status'];
+
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: item.containsKey('error')
+                          ? Text("❌ $url\nError: ${item['error']}")
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("✅ $url [Status: $status]", style: TextStyle(fontWeight: FontWeight.bold)),
+                                SizedBox(height: 8),
+                                Text(
+                                  const JsonEncoder.withIndent('  ').convert(item['data']),
+                                  style: TextStyle(fontFamily: 'monospace'),
+                                ),
+                              ],
+                            ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
