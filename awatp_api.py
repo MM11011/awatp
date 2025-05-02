@@ -1,48 +1,60 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import asyncio
-import json
+import logging
 
 from core.scanners import run_scan_modules
+from core.recon import perform_recon
+from utils.blocklist import is_blocked_domain
 
 app = Flask(__name__)
 CORS(app)
 
+logging.basicConfig(filename="awatp.log", level=logging.INFO)
+
+
 @app.route("/scan", methods=["POST"])
 def scan():
     data = request.get_json()
-    urls = data.get("urls", [])
-    modules = data.get("modules", ["sqli", "xss", "ssti", "open_redirect"])
+    if not data or "urls" not in data or "modules" not in data:
+        return jsonify({"error": "Missing URLs or modules"}), 400
 
-    # Load blocked domains
-    try:
-        with open("blocked_domains.json", "r") as f:
-            blocked_domains = set(json.load(f))
-    except FileNotFoundError:
-        blocked_domains = {"google.com", "facebook.com", "youtube.com"}  # Fallback defaults
-
-    def is_blocked(url):
-        return any(domain in url for domain in blocked_domains)
+    urls = data["urls"]
+    modules = data["modules"]
+    results = {}
 
     async def scan_all():
-        results = {}
-        for url in urls:
-            if is_blocked(url):
-                results[url] = {"error": "Domain is blocked from scanning."}
-            else:
-                results[url] = await run_scan_modules(url, modules)
-        return results
+        async with asyncio.TaskGroup() as tg:
+            for url in urls:
+                tg.create_task(scan_one(url))
 
-    scan_results = asyncio.run(scan_all())
-    return jsonify(scan_results)
+    async def scan_one(url):
+        if is_blocked_domain(url):
+            logging.warning(f"Blocked scan attempt for URL: {url}")
+            results[url] = {"error": "Blocked domain"}
+            return
+
+        logging.info(f"Scan started for {url} using modules: {modules}")
+        async with asyncio.ClientSession() as client:
+            scan_result = await run_scan_modules(client, url, modules)
+            results[url] = scan_result
+        logging.info(f"Scan completed for {url}: {scan_result}")
+
+    asyncio.run(scan_all())
+    return jsonify(results)
+
 
 @app.route("/recon", methods=["POST"])
 def recon():
-    from modules.recon import perform_recon
     data = request.get_json()
-    urls = data.get("urls", [])
-    results = {url: perform_recon(url) for url in urls}
-    return jsonify(results)
+
+    if not data or "url" not in data:
+        return jsonify({"error": "Missing URL"}), 400
+
+    target_url = data["url"]
+    result = perform_recon(target_url)
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

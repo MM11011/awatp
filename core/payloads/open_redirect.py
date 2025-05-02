@@ -1,39 +1,20 @@
-import requests
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+import httpx
 
-def scan_for_open_redirect(base_url):
-    """
-    Scans a URL for potential open redirect vulnerabilities.
-    
-    Returns a dictionary with detection results.
-    """
-    parsed = urlparse(base_url)
-    query = parse_qs(parsed.query)
-
-    test_payload = "https://evil.com"
-
-    vulnerable = False
-    tested_urls = []
-
-    for param in query:
-        original = query[param]
-        query[param] = [test_payload]
-
-        modified_query = urlencode(query, doseq=True)
-        modified_url = urlunparse(parsed._replace(query=modified_query))
-        tested_urls.append(modified_url)
-
-        try:
-            response = requests.get(modified_url, allow_redirects=False, timeout=5)
-            if "Location" in response.headers and test_payload in response.headers["Location"]:
-                vulnerable = True
-        except Exception:
-            pass  # Swallow connection errors
-
-        query[param] = original  # Restore original value
-
-    return {
-        "url": base_url,
-        "vulnerable": vulnerable,
-        "tested_urls": tested_urls
-    }
+async def scan_for_open_redirect(client, url):
+    payload = f"{url}?next=https://evil.com"
+    try:
+        response = await client.get(payload, follow_redirects=False)
+        vulnerable = response.headers.get("Location", "").startswith("https://evil.com")
+        return {
+            "type": "Open Redirect",
+            "payload": payload,
+            "vulnerable": vulnerable,
+            "evidence": response.headers.get("Location", "No redirect")
+        }
+    except Exception as e:
+        return {
+            "type": "Open Redirect",
+            "payload": payload,
+            "vulnerable": False,
+            "evidence": f"Error: {str(e)}"
+        }
