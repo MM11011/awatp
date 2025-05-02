@@ -1,109 +1,65 @@
 # AWATP (Adaptive Web Application Threat Profiler)
 
-AWATP is a hybrid CLI + Flutter-based adaptive web application vulnerability scanner. It enables multi-target scanning using selectable modules (SQLi, XSS, SSTI), provides fingerprinting, and generates downloadable per-scan and batch reports in JSON or ZIP.
+AWATP is a Python-based, modular web application vulnerability scanner designed for extensibility and rapid development of new security detection logic.
 
----
+## Features
 
-## 📂 Project Structure
+- ✅ Modular scan architecture (SQLi, XSS, SSTI, Open Redirect)
+- ✅ Flask REST API with endpoints for `/scan` and `/recon`
+- ✅ Flutter-based frontend (UI) with dark mode
+- ✅ Target blacklist support via `blocked_domains.json`
+- ✅ Configurable module selection via `--modules` flag
+- ✅ Fingerprinting endpoint for initial tech reconnaissance
+- ✅ Unit test coverage using `pytest` & `pytest-asyncio`
+
+## Project Structure
 
 ```
 awatp/
 ├── core/
-│   ├── scanner.py
+│   ├── payloads/
+│   │   ├── sqli.py
+│   │   ├── xss.py
+│   │   ├── ssti.py
+│   │   └── open_redirect.py
+│   ├── scanners.py
 │   ├── fingerprints.py
-│   └── payloads/
-│       ├── sql.py
-│       ├── xss.py
-│       └── ssti.py
-├── reports/
-├── utils/
-│   ├── parser.py
-│   └── report_writer.py
+│   └── __init__.py
+├── tests/
+│   ├── test_fingerprint_url.py
+│   ├── test_open_redirect.py
+│   ├── test_sql_injection.py
+│   ├── test_ssti.py
+│   ├── conftest.py
+│   └── test_utils.py
 ├── awatp_api.py
-├── main.py
-├── test.py
+├── targets.txt
 ├── requirements.txt
-├── .gitignore
-├── .gitattributes
-├── README.md
-└── awatp_ui/ (Flutter UI)
+└── README.md
 ```
 
----
+## Usage
 
-## 🚀 Features
+### Run Flask API
 
-- Multi-target URL scanning (CLI + Web UI)
-- Modular vulnerability scanning (SQLi, XSS, SSTI)
-- JSON-based scan reports (CLI + Web)
-- Download scan results individually or in batch (ZIP)
-- Real-time scan status updates in UI
-- Fingerprint detection (headers, status, etc.)
-- Flask backend API for asynchronous scan handling
-
----
-
-## 📦 Requirements
-
-### Python
-- Python 3.8+
-- Flask
-
-Install Python dependencies:
 ```bash
-pip install -r requirements.txt
+python -m awatp_api
 ```
 
-### Flutter UI
-- Flutter 3.x
-- Dart SDK
-- VS Code or Android Studio
-- Chrome (for web testing)
+### Example Scan Request
 
----
-
-## 🧪 Usage
-
-### Run Backend API (Python)
 ```bash
-python awatp_api.py
+curl -X POST http://localhost:5000/scan \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://example.com"], "modules": ["sqli", "xss"]}'
 ```
 
-Make sure it's running at:
-```
-http://<your_local_ip>:5000
-```
+### Run Tests
 
----
-
-### Run Flutter Frontend
 ```bash
-cd awatp_ui
-flutter run -d chrome
+PYTHONPATH=. pytest tests/
 ```
 
-Ensure `lib/main.dart` is updated to use your local IP for the Flask backend.
+## License
 
----
-
-## 📝 Scan Results
-
-- CLI and Flutter generate JSON reports under `reports/`
-- Each scan result is named: `scan_<domain>_<timestamp>.json`
-- The Flutter app offers:
-  - Individual scan download 📥
-  - Batch export as ZIP 🗂️
-
----
-
-## ✅ Next Features (Roadmap)
-
-- 🔄 Scan progress bar in UI
-- 🌐 Scan history browser
-- 📊 Threat dashboard
-- 📤 Export as CSV / PDF
-- 🔒 Login & role-based access
-
----
-
-© 2025 AWATP Project
+MIT
