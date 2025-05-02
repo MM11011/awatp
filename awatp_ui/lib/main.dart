@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:typed_data';
+import 'package:archive/archive.dart';
 
 void main() => runApp(AWATPApp());
 
@@ -85,6 +87,25 @@ class _ScanPageState extends State<ScanPage> {
     html.Url.revokeObjectUrl(url);
   }
 
+  void downloadAllAsZip(List<Map<String, dynamic>> results) {
+    final archive = Archive();
+
+    for (var result in results) {
+      final target = result['url'].toString().replaceAll(RegExp(r'https?://'), '').replaceAll('/', '_');
+      final jsonData = const JsonEncoder.withIndent('  ').convert(result['data']);
+      final fileName = 'scan_$target.json';
+      archive.addFile(ArchiveFile(fileName, jsonData.length, Uint8List.fromList(jsonData.codeUnits)));
+    }
+
+    final zipData = ZipEncoder().encode(archive)!;
+    final blob = html.Blob([zipData]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'awatp_scan_results.zip')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +140,16 @@ class _ScanPageState extends State<ScanPage> {
               onPressed: runScan,
               child: Text("Run Scan"),
             ),
+            SizedBox(height: 10),
+            if (scanResults.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () => downloadAllAsZip(scanResults),
+                  icon: Icon(Icons.archive),
+                  label: Text("Download All as ZIP"),
+                ),
+              ),
             SizedBox(height: 10),
             Expanded(
               child: ListView.builder(
